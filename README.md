@@ -21,6 +21,36 @@
 
 ---
 
+## 🚀 GitHub Pages 배포 방법
+
+### 방법 1 — GitHub 웹사이트에서 직접 업로드
+
+1. [github.com](https://github.com) 로그인
+2. 우상단 **+** → **New repository**
+3. Repository name: `coinbook` (또는 원하는 이름)
+4. **Public** 선택 → **Create repository**
+5. **uploading an existing file** 클릭
+6. 이 폴더의 파일들을 모두 드래그&드롭
+7. **Commit changes** 클릭
+8. 저장소 **Settings** → **Pages** → Source: **main branch / root** → **Save**
+9. 몇 분 후 `https://[username].github.io/coinbook/` 접속!
+
+### 방법 2 — Git CLI
+
+```bash
+cd crypto-portfolio
+git init
+git add .
+git commit -m "feat: coinbook PWA"
+git branch -M main
+git remote add origin https://github.com/[username]/coinbook.git
+git push -u origin main
+```
+
+그 다음 GitHub Settings → Pages → Deploy from branch → main → Save
+
+---
+
 ## 📁 파일 구조
 
 ```

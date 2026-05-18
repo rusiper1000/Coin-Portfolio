@@ -1,0 +1,1242 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="코인북">
+<meta name="theme-color" content="#0a0a0f">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="apple-touch-icon" sizes="192x192" href="icon-192.png">
+<link rel="apple-touch-icon" sizes="512x512" href="icon-512.png">
+<title>코인북 — 내 포트폴리오</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0a0a0f;
+  --bg2: #111118;
+  --bg3: #1a1a24;
+  --bg4: #22222f;
+  --surface: #16161f;
+  --border: rgba(255,255,255,0.07);
+  --border2: rgba(255,255,255,0.12);
+  --text: #f0f0f5;
+  --text2: #8888a0;
+  --text3: #55556a;
+  --orange: #F7931A;
+  --orange-dim: rgba(247,147,26,0.15);
+  --orange-glow: rgba(247,147,26,0.25);
+  --green: #00d4a0;
+  --green-dim: rgba(0,212,160,0.12);
+  --red: #ff5555;
+  --red-dim: rgba(255,85,85,0.12);
+  --blue: #6c8fff;
+  --safe-top: env(safe-area-inset-top, 44px);
+  --safe-bottom: env(safe-area-inset-bottom, 34px);
+  --tab-h: 64px;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+html, body {
+  width: 100%; height: 100%;
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Noto Sans KR', sans-serif;
+  overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── LAYOUT ── */
+#root { display: flex; flex-direction: column; height: 100%; }
+
+.page {
+  display: none; flex: 1;
+  overflow-y: auto; overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: calc(var(--tab-h) + var(--safe-bottom) + 16px);
+  padding-top: calc(var(--safe-top) + 8px);
+}
+.page.active { display: block; }
+
+/* ── STATUS BAR AREA ── */
+.status-bar {
+  height: var(--safe-top);
+  background: var(--bg);
+  flex-shrink: 0;
+}
+
+/* ── TAB BAR ── */
+.tabbar {
+  position: fixed; bottom: 0; left: 0; right: 0;
+  height: calc(var(--tab-h) + var(--safe-bottom));
+  background: rgba(10,10,15,0.95);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-top: 0.5px solid var(--border);
+  display: flex; align-items: flex-start; justify-content: space-around;
+  padding-top: 8px;
+  z-index: 100;
+}
+.tab-btn {
+  display: flex; flex-direction: column; align-items: center; gap: 3px;
+  background: none; border: none; color: var(--text3);
+  font-family: 'Noto Sans KR', sans-serif;
+  font-size: 10px; cursor: pointer;
+  padding: 4px 20px;
+  transition: color 0.2s;
+  position: relative;
+}
+.tab-btn svg { width: 22px; height: 22px; stroke-width: 1.8; }
+.tab-btn.active { color: var(--orange); }
+.tab-btn .dot {
+  position: absolute; top: 2px; right: 14px;
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--orange); display: none;
+}
+.tab-btn .dot.show { display: block; }
+
+/* ── PAGE HEADER ── */
+.pg-header {
+  padding: 8px 20px 16px;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.pg-title {
+  font-family: 'Syne', sans-serif;
+  font-size: 26px; font-weight: 800;
+  color: var(--text);
+  letter-spacing: -0.5px;
+}
+
+/* ── ICON BUTTONS ── */
+.icon-btn {
+  width: 40px; height: 40px;
+  background: var(--bg3); border: 0.5px solid var(--border2);
+  border-radius: 50%; display: flex; align-items: center; justify-content: center;
+  cursor: pointer; color: var(--text2);
+  transition: all 0.15s;
+}
+.icon-btn:active { transform: scale(0.92); background: var(--bg4); }
+
+/* ── HERO CARD ── */
+.hero-card {
+  margin: 0 16px 16px;
+  background: var(--surface);
+  border: 0.5px solid var(--border);
+  border-radius: 20px;
+  padding: 24px;
+  position: relative; overflow: hidden;
+}
+.hero-card::before {
+  content: '';
+  position: absolute; top: -40px; right: -40px;
+  width: 160px; height: 160px;
+  background: radial-gradient(circle, var(--orange-glow) 0%, transparent 70%);
+  pointer-events: none;
+}
+.hero-label { font-size: 12px; color: var(--text2); margin-bottom: 6px; letter-spacing: 0.04em; }
+.hero-value {
+  font-family: 'Syne', sans-serif;
+  font-size: 36px; font-weight: 700;
+  color: var(--text); letter-spacing: -1px;
+  line-height: 1;
+  margin-bottom: 12px;
+}
+.hero-pnl {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 5px 12px; border-radius: 99px;
+  font-size: 13px; font-weight: 500;
+}
+.hero-pnl.pos { background: var(--green-dim); color: var(--green); }
+.hero-pnl.neg { background: var(--red-dim); color: var(--red); }
+.hero-pnl.neutral { background: var(--bg4); color: var(--text2); }
+.hero-stats {
+  display: flex; gap: 0;
+  margin-top: 20px;
+  border-top: 0.5px solid var(--border);
+  padding-top: 16px;
+}
+.hero-stat { flex: 1; text-align: center; }
+.hero-stat + .hero-stat { border-left: 0.5px solid var(--border); }
+.hero-stat-label { font-size: 10px; color: var(--text3); margin-bottom: 3px; letter-spacing: 0.03em; }
+.hero-stat-val { font-size: 14px; font-weight: 500; color: var(--text2); }
+
+/* ── MINI METRICS ── */
+.metrics-row {
+  display: flex; gap: 8px;
+  padding: 0 16px;
+  margin-bottom: 20px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.metrics-row::-webkit-scrollbar { display: none; }
+.metric-pill {
+  flex-shrink: 0;
+  background: var(--surface);
+  border: 0.5px solid var(--border);
+  border-radius: 12px;
+  padding: 10px 14px;
+  min-width: 100px;
+}
+.metric-pill-label { font-size: 10px; color: var(--text3); margin-bottom: 2px; }
+.metric-pill-val { font-size: 15px; font-weight: 500; }
+
+/* ── SECTION ── */
+.section { padding: 0 16px; }
+.section-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 10px;
+}
+.section-title { font-size: 12px; color: var(--text3); letter-spacing: 0.06em; font-weight: 500; }
+.section-link { font-size: 12px; color: var(--orange); }
+
+/* ── COIN ROW ── */
+.coin-list { display: flex; flex-direction: column; gap: 1px; }
+.coin-row {
+  background: var(--surface);
+  border: 0.5px solid var(--border);
+  border-radius: 14px;
+  padding: 14px 16px;
+  display: flex; align-items: center; gap: 12px;
+  cursor: pointer;
+  transition: all 0.15s;
+  margin-bottom: 6px;
+  position: relative;
+  overflow: hidden;
+}
+.coin-row:active { transform: scale(0.985); background: var(--bg3); }
+.coin-row::after {
+  content: '';
+  position: absolute; left: 0; top: 0; bottom: 0;
+  width: 3px;
+  border-radius: 99px 0 0 99px;
+}
+.coin-row.pos::after { background: var(--green); }
+.coin-row.neg::after { background: var(--red); }
+
+.coin-avatar {
+  width: 42px; height: 42px; border-radius: 50%;
+  background: var(--bg4);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 700; color: var(--text2);
+  flex-shrink: 0; overflow: hidden;
+  border: 1px solid var(--border);
+}
+.coin-avatar img { width: 100%; height: 100%; object-fit: cover; }
+
+.coin-info { flex: 1; min-width: 0; }
+.coin-name { font-size: 15px; font-weight: 500; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.coin-sub { font-size: 11px; color: var(--text3); margin-top: 1px; }
+
+.coin-right { text-align: right; flex-shrink: 0; }
+.coin-value { font-size: 15px; font-weight: 500; color: var(--text); }
+.coin-pnl { font-size: 12px; margin-top: 2px; }
+.coin-pnl.pos { color: var(--green); }
+.coin-pnl.neg { color: var(--red); }
+
+/* ── SWIPE DELETE (left/right actions) ── */
+.swipe-wrap {
+  position: relative;
+  margin-bottom: 6px;
+  overflow: hidden;
+  border-radius: 14px;
+}
+.swipe-actions {
+  position: absolute; right: 0; top: 0; bottom: 0;
+  display: flex; align-items: center;
+  gap: 1px;
+}
+.swipe-action-btn {
+  height: 100%; display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: 3px; padding: 0 18px;
+  font-size: 10px; font-weight: 500;
+  cursor: pointer; border: none;
+}
+.swipe-action-btn.edit { background: var(--blue); color: white; }
+.swipe-action-btn.del { background: var(--red); color: white; }
+.swipe-action-btn svg { width: 18px; height: 18px; }
+
+/* ── CHART DONUT ── */
+.donut-wrap {
+  margin: 0 16px 20px;
+  background: var(--surface);
+  border: 0.5px solid var(--border);
+  border-radius: 20px;
+  padding: 20px;
+}
+.donut-title { font-size: 12px; color: var(--text3); letter-spacing: 0.06em; margin-bottom: 16px; font-weight: 500; }
+.donut-inner { display: flex; align-items: center; gap: 20px; }
+.donut-canvas-wrap { position: relative; width: 120px; height: 120px; flex-shrink: 0; }
+.donut-center {
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+}
+.donut-center-val { font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 700; color: var(--text); }
+.donut-center-label { font-size: 9px; color: var(--text3); }
+.donut-legend { flex: 1; display: flex; flex-direction: column; gap: 7px; }
+.legend-item { display: flex; align-items: center; gap: 7px; }
+.legend-dot { width: 8px; height: 8px; border-radius: 2px; flex-shrink: 0; }
+.legend-name { font-size: 12px; color: var(--text2); flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.legend-pct { font-size: 12px; color: var(--text); font-weight: 500; }
+
+/* ── FAB ── */
+.fab {
+  position: fixed; bottom: calc(var(--tab-h) + var(--safe-bottom) + 16px); right: 20px;
+  width: 56px; height: 56px; border-radius: 50%;
+  background: var(--orange);
+  border: none; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 4px 24px var(--orange-glow);
+  z-index: 90;
+  transition: all 0.2s;
+}
+.fab:active { transform: scale(0.9); }
+.fab svg { width: 26px; height: 26px; color: white; }
+
+/* ── BOTTOM SHEET / MODAL ── */
+.sheet-backdrop {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.7);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  z-index: 200;
+  display: none;
+  opacity: 0;
+  transition: opacity 0.25s;
+}
+.sheet-backdrop.open { display: block; }
+.sheet-backdrop.visible { opacity: 1; }
+
+.sheet {
+  position: fixed; left: 0; right: 0; bottom: 0;
+  background: var(--bg2);
+  border-radius: 24px 24px 0 0;
+  border: 0.5px solid var(--border2);
+  padding: 0 20px calc(var(--safe-bottom) + 20px);
+  z-index: 201;
+  transform: translateY(100%);
+  transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+  max-height: 92vh;
+  overflow-y: auto;
+}
+.sheet.open { transform: translateY(0); }
+
+.sheet-handle {
+  width: 36px; height: 4px;
+  background: var(--border2); border-radius: 99px;
+  margin: 12px auto 20px;
+}
+.sheet-title {
+  font-family: 'Syne', sans-serif;
+  font-size: 20px; font-weight: 700;
+  color: var(--text); margin-bottom: 20px;
+}
+
+/* ── FORM ── */
+.form-group { margin-bottom: 16px; }
+.form-label { font-size: 12px; color: var(--text2); margin-bottom: 6px; display: block; letter-spacing: 0.03em; }
+.form-input {
+  width: 100%;
+  background: var(--bg3); border: 0.5px solid var(--border2);
+  border-radius: 12px; padding: 14px 16px;
+  font-size: 16px; color: var(--text);
+  font-family: 'Noto Sans KR', sans-serif;
+  outline: none;
+  transition: border-color 0.15s;
+  -webkit-appearance: none;
+}
+.form-input:focus { border-color: var(--orange); }
+.form-input::placeholder { color: var(--text3); }
+
+.search-results-sheet {
+  background: var(--bg3);
+  border: 0.5px solid var(--border2);
+  border-radius: 12px;
+  margin-top: 4px;
+  overflow: hidden;
+  display: none;
+  max-height: 200px;
+  overflow-y: auto;
+}
+.search-results-sheet.open { display: block; }
+.search-result-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 12px 16px;
+  cursor: pointer;
+  transition: background 0.1s;
+  border-bottom: 0.5px solid var(--border);
+}
+.search-result-item:last-child { border-bottom: none; }
+.search-result-item:active { background: var(--bg4); }
+.search-result-item img { width: 28px; height: 28px; border-radius: 50%; }
+.search-result-name { font-size: 14px; color: var(--text); flex: 1; }
+.search-result-sym {
+  font-size: 11px; color: var(--text3);
+  background: var(--bg4); padding: 2px 7px; border-radius: 99px;
+  text-transform: uppercase;
+}
+
+.selected-coin-chip {
+  display: flex; align-items: center; gap: 10px;
+  background: var(--orange-dim); border: 1px solid var(--orange-glow);
+  border-radius: 12px; padding: 10px 14px;
+  margin-bottom: 16px;
+}
+.selected-coin-chip img { width: 28px; height: 28px; border-radius: 50%; }
+.selected-coin-chip-name { flex: 1; font-size: 14px; font-weight: 500; color: var(--orange); }
+.selected-coin-chip-sym { font-size: 11px; color: var(--text2); }
+.chip-remove { color: var(--text3); background: none; border: none; cursor: pointer; font-size: 18px; padding: 0; line-height: 1; }
+
+.input-row { display: flex; gap: 10px; }
+.input-row .form-group { flex: 1; }
+
+.hint-text { font-size: 11px; color: var(--text3); margin-top: 4px; }
+
+.btn-full {
+  width: 100%; height: 52px;
+  background: var(--orange); color: white;
+  border: none; border-radius: 14px;
+  font-size: 16px; font-weight: 700;
+  font-family: 'Noto Sans KR', sans-serif;
+  cursor: pointer; letter-spacing: -0.2px;
+  transition: all 0.15s;
+  margin-top: 4px;
+}
+.btn-full:active { transform: scale(0.97); opacity: 0.9; }
+.btn-full.secondary {
+  background: var(--bg3); color: var(--text);
+  border: 0.5px solid var(--border2);
+  margin-top: 8px;
+}
+
+/* ── DETAIL SHEET ── */
+.detail-header { text-align: center; margin-bottom: 24px; }
+.detail-avatar {
+  width: 60px; height: 60px; border-radius: 50%;
+  background: var(--bg4); margin: 0 auto 12px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px; font-weight: 700; color: var(--text2);
+  overflow: hidden; border: 1px solid var(--border2);
+}
+.detail-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.detail-name { font-family: 'Syne', sans-serif; font-size: 22px; font-weight: 700; color: var(--text); }
+.detail-sym { font-size: 13px; color: var(--text3); margin-top: 2px; }
+
+.detail-price-big {
+  font-family: 'Syne', sans-serif;
+  font-size: 32px; font-weight: 800; color: var(--text);
+  text-align: center; margin-bottom: 4px;
+  letter-spacing: -0.5px;
+}
+.detail-change {
+  text-align: center; font-size: 14px; font-weight: 500;
+  margin-bottom: 24px;
+}
+
+.stat-grid {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 8px; margin-bottom: 20px;
+}
+.stat-card {
+  background: var(--bg3); border-radius: 12px;
+  padding: 12px 14px;
+  border: 0.5px solid var(--border);
+}
+.stat-card-label { font-size: 10px; color: var(--text3); margin-bottom: 4px; letter-spacing: 0.03em; }
+.stat-card-val { font-size: 16px; font-weight: 500; color: var(--text); }
+.stat-card-sub { font-size: 11px; margin-top: 1px; }
+
+.detail-actions { display: flex; gap: 8px; margin-top: 4px; }
+.detail-btn {
+  flex: 1; height: 48px; border-radius: 12px;
+  border: 0.5px solid var(--border2);
+  background: var(--bg3); color: var(--text);
+  font-size: 14px; font-family: 'Noto Sans KR', sans-serif;
+  cursor: pointer; font-weight: 500;
+  transition: all 0.15s;
+}
+.detail-btn:active { opacity: 0.7; transform: scale(0.97); }
+.detail-btn.danger { color: var(--red); border-color: rgba(255,85,85,0.3); }
+
+/* ── SETTINGS PAGE ── */
+.settings-section { margin: 0 16px 20px; }
+.settings-group {
+  background: var(--surface);
+  border: 0.5px solid var(--border);
+  border-radius: 16px;
+  overflow: hidden;
+  margin-bottom: 16px;
+}
+.settings-row {
+  display: flex; align-items: center;
+  padding: 14px 16px;
+  border-bottom: 0.5px solid var(--border);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.settings-row:last-child { border-bottom: none; }
+.settings-row:active { background: var(--bg3); }
+.settings-row-icon {
+  width: 32px; height: 32px; border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  margin-right: 12px; flex-shrink: 0;
+}
+.settings-row-text { flex: 1; }
+.settings-row-label { font-size: 15px; color: var(--text); }
+.settings-row-sub { font-size: 12px; color: var(--text3); margin-top: 1px; }
+.settings-row-right { color: var(--text3); font-size: 13px; }
+
+.settings-group-label { font-size: 11px; color: var(--text3); margin-bottom: 6px; padding-left: 4px; letter-spacing: 0.05em; }
+
+.warning-row { background: var(--red-dim); }
+.warning-row .settings-row-label { color: var(--red); }
+
+/* ── EMPTY STATE ── */
+.empty-state {
+  display: flex; flex-direction: column; align-items: center;
+  padding: 60px 32px;
+  text-align: center;
+}
+.empty-icon {
+  width: 80px; height: 80px; border-radius: 50%;
+  background: var(--bg3); border: 1px solid var(--border2);
+  display: flex; align-items: center; justify-content: center;
+  margin-bottom: 20px;
+}
+.empty-icon svg { width: 36px; height: 36px; color: var(--text3); }
+.empty-title { font-family: 'Syne', sans-serif; font-size: 20px; font-weight: 700; color: var(--text); margin-bottom: 8px; }
+.empty-sub { font-size: 14px; color: var(--text3); line-height: 1.6; }
+
+/* ── LOADING ── */
+.skeleton {
+  background: linear-gradient(90deg, var(--bg3) 25%, var(--bg4) 50%, var(--bg3) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 8px;
+}
+@keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
+/* ── TOAST ── */
+.toast {
+  position: fixed; bottom: calc(var(--tab-h) + var(--safe-bottom) + 80px);
+  left: 50%; transform: translateX(-50%) translateY(20px);
+  background: var(--bg4); color: var(--text);
+  border: 0.5px solid var(--border2);
+  padding: 10px 20px; border-radius: 99px;
+  font-size: 13px; white-space: nowrap;
+  z-index: 300; opacity: 0;
+  transition: all 0.25s;
+  pointer-events: none;
+}
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+/* ── REFRESH INDICATOR ── */
+.refresh-badge {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: 11px; color: var(--text3);
+  background: var(--bg3); border: 0.5px solid var(--border);
+  padding: 4px 10px; border-radius: 99px;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.spin { animation: spin 0.8s linear infinite; }
+
+/* ── SPLASH ── */
+#splash {
+  position: fixed; inset: 0;
+  background: var(--bg);
+  display: flex; align-items: center; justify-content: center;
+  flex-direction: column; gap: 12px;
+  z-index: 999;
+  transition: opacity 0.4s;
+}
+#splash.hidden { opacity: 0; pointer-events: none; }
+.splash-logo { font-size: 48px; }
+.splash-name {
+  font-family: 'Syne', sans-serif;
+  font-size: 28px; font-weight: 800;
+  color: var(--text); letter-spacing: -0.5px;
+}
+.splash-sub { font-size: 13px; color: var(--text3); }
+
+/* ── INSTALL BANNER ── */
+#installBanner {
+  display: none;
+  margin: 0 16px 12px;
+  background: var(--orange-dim);
+  border: 1px solid var(--orange-glow);
+  border-radius: 14px;
+  padding: 12px 14px;
+  align-items: center; gap: 10px;
+}
+#installBanner.show { display: flex; }
+.install-text { flex: 1; font-size: 12px; color: var(--text2); line-height: 1.4; }
+.install-text strong { color: var(--orange); font-size: 13px; display: block; margin-bottom: 2px; }
+.install-close { background: none; border: none; color: var(--text3); font-size: 18px; cursor: pointer; padding: 0; }
+</style>
+</head>
+<body>
+
+<!-- SPLASH -->
+<div id="splash">
+  <div class="splash-logo">₿</div>
+  <div class="splash-name">코인북</div>
+  <div class="splash-sub">내 포트폴리오를 안전하게</div>
+</div>
+
+<div id="root">
+  <!-- ── PORTFOLIO PAGE ── -->
+  <div class="page active" id="page-portfolio">
+    <div class="pg-header">
+      <div class="pg-title">포트폴리오</div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <div class="refresh-badge" id="updateBadge">
+          <svg id="refreshIcon" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+          <span id="updateText">-</span>
+        </div>
+        <div class="icon-btn" onclick="refreshPrices()" title="새로고침">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+        </div>
+      </div>
+    </div>
+
+    <!-- Install Banner -->
+    <div id="installBanner">
+      <div style="font-size:22px">📲</div>
+      <div class="install-text"><strong>홈화면에 추가하기</strong>Safari에서 공유 → '홈 화면에 추가'를 탭하면 앱처럼 사용할 수 있어요</div>
+      <button class="install-close" onclick="document.getElementById('installBanner').classList.remove('show');localStorage.setItem('install_dismissed','1')">✕</button>
+    </div>
+
+    <!-- Hero -->
+    <div class="hero-card" id="heroCard">
+      <div class="hero-label">총 자산가치</div>
+      <div class="hero-value" id="heroValue">₩0</div>
+      <div class="hero-pnl neutral" id="heroPnl">+ ₩0  0.00%</div>
+      <div class="hero-stats">
+        <div class="hero-stat">
+          <div class="hero-stat-label">매입금액</div>
+          <div class="hero-stat-val" id="heroStat1">₩0</div>
+        </div>
+        <div class="hero-stat">
+          <div class="hero-stat-label">보유 종목</div>
+          <div class="hero-stat-val" id="heroStat2">0개</div>
+        </div>
+        <div class="hero-stat">
+          <div class="hero-stat-label">24h 변동</div>
+          <div class="hero-stat-val" id="heroStat3">-</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Holdings -->
+    <div class="section">
+      <div class="section-header">
+        <div class="section-title">보유 현황</div>
+      </div>
+      <div class="coin-list" id="coinList">
+        <div class="empty-state">
+          <div class="empty-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+          </div>
+          <div class="empty-title">코인을 추가해보세요</div>
+          <div class="empty-sub">+ 버튼을 눌러 보유한<br>암호화폐를 입력하세요</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Donut Chart -->
+    <div class="donut-wrap" id="donutSection" style="display:none">
+      <div class="donut-title">자산 배분</div>
+      <div class="donut-inner">
+        <div class="donut-canvas-wrap">
+          <canvas id="donutChart" width="120" height="120" role="img" aria-label="자산 배분 도넛 차트"></canvas>
+          <div class="donut-center">
+            <div class="donut-center-val" id="donutCenterVal">-</div>
+            <div class="donut-center-label">종목</div>
+          </div>
+        </div>
+        <div class="donut-legend" id="donutLegend"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── SETTINGS PAGE ── -->
+  <div class="page" id="page-settings">
+    <div class="pg-header">
+      <div class="pg-title">설정</div>
+    </div>
+    <div class="settings-section">
+      <div class="settings-group-label">데이터</div>
+      <div class="settings-group">
+        <div class="settings-row" onclick="exportData()">
+          <div class="settings-row-icon" style="background:rgba(108,143,255,0.15)">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6c8fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          </div>
+          <div class="settings-row-text">
+            <div class="settings-row-label">데이터 내보내기</div>
+            <div class="settings-row-sub">JSON 파일로 백업</div>
+          </div>
+          <div class="settings-row-right">›</div>
+        </div>
+        <div class="settings-row" onclick="document.getElementById('importInput').click()">
+          <div class="settings-row-icon" style="background:rgba(0,212,160,0.15)">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#00d4a0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          </div>
+          <div class="settings-row-text">
+            <div class="settings-row-label">데이터 가져오기</div>
+            <div class="settings-row-sub">JSON 파일에서 복원</div>
+          </div>
+          <div class="settings-row-right">›</div>
+        </div>
+      </div>
+      <input type="file" id="importInput" accept=".json" style="display:none" onchange="importData(event)">
+
+      <div class="settings-group-label">정보</div>
+      <div class="settings-group">
+        <div class="settings-row" style="cursor:default">
+          <div class="settings-row-icon" style="background:var(--orange-dim)">
+            <span style="font-size:16px">₿</span>
+          </div>
+          <div class="settings-row-text">
+            <div class="settings-row-label">코인북</div>
+            <div class="settings-row-sub">v1.0 · 데이터는 이 기기에만 저장됩니다</div>
+          </div>
+        </div>
+        <div class="settings-row" style="cursor:default">
+          <div class="settings-row-icon" style="background:rgba(108,143,255,0.15)">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6c8fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          </div>
+          <div class="settings-row-text">
+            <div class="settings-row-label">프라이버시</div>
+            <div class="settings-row-sub">시세만 외부 조회. 보유량 외부 전송 없음</div>
+          </div>
+        </div>
+        <div class="settings-row" onclick="window.open('https://www.coingecko.com','_blank')" style="">
+          <div class="settings-row-icon" style="background:rgba(0,212,160,0.15)">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#00d4a0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+          </div>
+          <div class="settings-row-text">
+            <div class="settings-row-label">시세 제공</div>
+            <div class="settings-row-sub">CoinGecko API (공개, 무료)</div>
+          </div>
+          <div class="settings-row-right">↗</div>
+        </div>
+      </div>
+
+      <div class="settings-group-label">위험</div>
+      <div class="settings-group">
+        <div class="settings-row warning-row" onclick="confirmReset()">
+          <div class="settings-row-icon" style="background:var(--red-dim)">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ff5555" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
+          </div>
+          <div class="settings-row-text">
+            <div class="settings-row-label">모든 데이터 삭제</div>
+            <div class="settings-row-sub">복구 불가 · 초기화</div>
+          </div>
+          <div class="settings-row-right" style="color:var(--red)">›</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB BAR -->
+  <div class="tabbar">
+    <button class="tab-btn active" id="tab-portfolio" onclick="switchTab('portfolio')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M3 3h7v7H3z M14 3h7v7h-7z M14 14h7v7h-7z M3 14h7v7H3z"/>
+      </svg>
+      포트폴리오
+    </button>
+    <button class="tab-btn" id="tab-settings" onclick="switchTab('settings')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="3"/>
+        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+      </svg>
+      설정
+    </button>
+  </div>
+</div>
+
+<!-- FAB -->
+<button class="fab" id="fab" onclick="openAddSheet()">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+</button>
+
+<!-- ADD / EDIT SHEET -->
+<div class="sheet-backdrop" id="backdrop" onclick="closeSheet()"></div>
+<div class="sheet" id="addSheet">
+  <div class="sheet-handle"></div>
+  <div class="sheet-title" id="sheetTitle">코인 추가</div>
+
+  <div id="coinSearchGroup">
+    <div class="form-group">
+      <label class="form-label">코인 검색</label>
+      <input class="form-input" id="coinSearch" type="search" placeholder="BTC, 비트코인, Bitcoin..." autocomplete="off" autocorrect="off" spellcheck="false">
+    </div>
+    <div class="search-results-sheet" id="searchResults"></div>
+  </div>
+
+  <div id="selectedChip" style="display:none"></div>
+
+  <div id="formFields" style="display:none">
+    <div class="input-row">
+      <div class="form-group">
+        <label class="form-label">보유 수량</label>
+        <input class="form-input" id="inputQty" type="number" inputmode="decimal" placeholder="0.0" step="any" min="0">
+      </div>
+      <div class="form-group">
+        <label class="form-label">평균 매입가 (₩)</label>
+        <input class="form-input" id="inputCost" type="number" inputmode="numeric" placeholder="0" step="any" min="0">
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">메모 (선택)</label>
+      <input class="form-input" id="inputNote" type="text" placeholder="예: 업비트 장기보유">
+    </div>
+    <button class="btn-full" onclick="saveHolding()">저장하기</button>
+    <button class="btn-full secondary" onclick="closeSheet()">취소</button>
+  </div>
+</div>
+
+<!-- DETAIL SHEET -->
+<div class="sheet" id="detailSheet">
+  <div class="sheet-handle"></div>
+  <div id="detailContent"></div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script>
+// ── STATE ──
+let holdings = JSON.parse(localStorage.getItem('coinbook_v1') || '[]');
+let prices = {};
+let selectedCoin = null;
+let editingId = null;
+let searchTimeout = null;
+let donutChart = null;
+const COLORS = ['#F7931A','#00d4a0','#6c8fff','#ff5555','#ffd166','#a29bfe','#fd79a8','#55efc4','#74b9ff','#fdcb6e'];
+
+// ── UTILS ──
+function save() { localStorage.setItem('coinbook_v1', JSON.stringify(holdings)); }
+function fmtKRW(n, compact) {
+  if (n === undefined || n === null || isNaN(n)) return '-';
+  if (compact && Math.abs(n) >= 1e8) return (n/1e8).toFixed(1) + '억';
+  if (compact && Math.abs(n) >= 1e4) return (n/1e4).toFixed(0) + '만';
+  return '₩' + Math.round(n).toLocaleString('ko-KR');
+}
+function fmtNum(n) {
+  if (!n) return '0';
+  if (n >= 1e8) return (n/1e8).toFixed(2) + '억';
+  return n.toLocaleString('ko-KR');
+}
+function showToast(msg, type) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.style.background = type === 'err' ? 'var(--red-dim)' : 'var(--bg4)';
+  t.style.color = type === 'err' ? 'var(--red)' : 'var(--text)';
+  t.style.borderColor = type === 'err' ? 'rgba(255,85,85,0.3)' : 'var(--border2)';
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+// ── TAB ROUTING ──
+function switchTab(tab) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('page-' + tab).classList.add('active');
+  document.getElementById('tab-' + tab).classList.add('active');
+  document.getElementById('fab').style.display = tab === 'portfolio' ? 'flex' : 'none';
+}
+
+// ── SHEET ──
+function openSheet(sheetId) {
+  const backdrop = document.getElementById('backdrop');
+  const sheet = document.getElementById(sheetId);
+  backdrop.classList.add('open');
+  sheet.classList.add('open');
+  setTimeout(() => backdrop.classList.add('visible'), 10);
+  document.body.style.overflow = 'hidden';
+}
+function closeSheet() {
+  ['backdrop','addSheet','detailSheet'].forEach(id => {
+    const el = document.getElementById(id);
+    el.classList.remove('open', 'visible');
+  });
+  document.body.style.overflow = '';
+  selectedCoin = null; editingId = null;
+  resetAddForm();
+}
+
+// ── ADD SHEET ──
+function openAddSheet(editId) {
+  editingId = editId || null;
+  resetAddForm();
+  document.getElementById('sheetTitle').textContent = editId ? '보유량 수정' : '코인 추가';
+  if (editId) {
+    const h = holdings.find(x => x.id === editId);
+    if (h) {
+      selectedCoin = { id: h.coinId, name: h.name, symbol: h.symbol, thumb: h.thumb };
+      showSelectedCoin();
+      document.getElementById('inputQty').value = h.qty;
+      document.getElementById('inputCost').value = h.avgCost;
+      document.getElementById('inputNote').value = h.note || '';
+    }
+  }
+  openSheet('addSheet');
+  if (!editId) setTimeout(() => document.getElementById('coinSearch').focus(), 400);
+}
+
+function resetAddForm() {
+  selectedCoin = null;
+  document.getElementById('coinSearchGroup').style.display = 'block';
+  document.getElementById('selectedChip').style.display = 'none';
+  document.getElementById('formFields').style.display = 'none';
+  document.getElementById('searchResults').classList.remove('open');
+  document.getElementById('coinSearch').value = '';
+  document.getElementById('inputQty').value = '';
+  document.getElementById('inputCost').value = '';
+  document.getElementById('inputNote').value = '';
+}
+
+function showSelectedCoin() {
+  document.getElementById('coinSearchGroup').style.display = 'none';
+  const c = selectedCoin;
+  const chip = document.getElementById('selectedChip');
+  chip.innerHTML = `<div class="selected-coin-chip">
+    ${c.thumb ? `<img src="${c.thumb}" onerror="this.style.display='none'">` : `<div style="width:28px;height:28px;border-radius:50%;background:var(--bg4);display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--text2)">${c.symbol.slice(0,3)}</div>`}
+    <div style="flex:1"><div class="selected-coin-chip-name">${c.name}</div><div class="selected-coin-chip-sym">${c.symbol.toUpperCase()}</div></div>
+    <button class="chip-remove" onclick="resetAddForm()">✕</button>
+  </div>`;
+  chip.style.display = 'block';
+  document.getElementById('formFields').style.display = 'block';
+  if (prices[c.id]) {
+    document.getElementById('inputCost').placeholder = '현재가: ' + Math.round(prices[c.id]).toLocaleString();
+  }
+  setTimeout(() => document.getElementById('inputQty').focus(), 150);
+}
+
+// ── COIN SEARCH ──
+document.getElementById('coinSearch').addEventListener('input', function() {
+  clearTimeout(searchTimeout);
+  const q = this.value.trim();
+  if (!q) { document.getElementById('searchResults').classList.remove('open'); return; }
+  searchTimeout = setTimeout(() => searchCoins(q), 350);
+});
+
+async function searchCoins(q) {
+  try {
+    const r = await fetch(`https://api.coingecko.com/api/v3/search?query=${encodeURIComponent(q)}`);
+    const data = await r.json();
+    renderSearchResults(data.coins || []);
+  } catch(e) { renderSearchResults([]); }
+}
+
+function renderSearchResults(coins) {
+  const el = document.getElementById('searchResults');
+  if (!coins.length) { el.classList.remove('open'); return; }
+  el.innerHTML = coins.slice(0, 7).map(c => `
+    <div class="search-result-item" onclick='pickCoin(${JSON.stringify({id:c.id,name:c.name,symbol:c.symbol,thumb:c.thumb||c.large||""})})'>
+      ${c.thumb ? `<img src="${c.thumb}" onerror="this.style.display='none'" loading="lazy">` : `<div style="width:28px;height:28px;border-radius:50%;background:var(--bg4)"></div>`}
+      <span class="search-result-name">${c.name}</span>
+      <span class="search-result-sym">${c.symbol}</span>
+    </div>`).join('');
+  el.classList.add('open');
+}
+
+function pickCoin(coin) {
+  selectedCoin = coin;
+  showSelectedCoin();
+}
+
+// ── SAVE ──
+async function saveHolding() {
+  if (!selectedCoin) { showToast('코인을 선택해주세요', 'err'); return; }
+  const qty = parseFloat(document.getElementById('inputQty').value);
+  const cost = parseFloat(document.getElementById('inputCost').value);
+  const note = document.getElementById('inputNote').value.trim();
+  if (!qty || qty <= 0) { showToast('수량을 입력해주세요', 'err'); return; }
+  if (!cost || cost <= 0) { showToast('매입가를 입력해주세요', 'err'); return; }
+
+  if (editingId) {
+    const h = holdings.find(x => x.id === editingId);
+    if (h) { h.qty = qty; h.avgCost = cost; h.note = note; }
+  } else {
+    const existing = holdings.find(x => x.coinId === selectedCoin.id);
+    if (existing) {
+      const newQty = existing.qty + qty;
+      existing.avgCost = (existing.qty * existing.avgCost + qty * cost) / newQty;
+      existing.qty = newQty;
+      if (note) existing.note = note;
+    } else {
+      holdings.push({ id: Date.now().toString(), coinId: selectedCoin.id, name: selectedCoin.name, symbol: selectedCoin.symbol.toUpperCase(), thumb: selectedCoin.thumb || '', qty, avgCost: cost, note, addedAt: Date.now() });
+    }
+  }
+  save();
+  closeSheet();
+  await refreshPrices();
+  showToast(editingId ? '수정되었습니다' : '추가되었습니다 🎉');
+}
+
+// ── DELETE ──
+function deleteHolding(id) {
+  holdings = holdings.filter(x => x.id !== id);
+  save();
+  closeSheet();
+  render();
+  showToast('삭제되었습니다');
+}
+
+// ── PRICES ──
+async function refreshPrices() {
+  if (!holdings.length) { render(); return; }
+  const ids = [...new Set(holdings.map(h => h.coinId))].join(',');
+  const icon = document.getElementById('refreshIcon');
+  icon.classList.add('spin');
+  document.getElementById('updateText').textContent = '업데이트 중';
+  try {
+    const r = await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=krw&include_24hr_change=true`);
+    const data = await r.json();
+    for (const [id, info] of Object.entries(data)) {
+      prices[id] = info.krw;
+      prices[id + '_24h'] = info.krw_24h_change;
+    }
+    const now = new Date();
+    document.getElementById('updateText').textContent = now.getHours().toString().padStart(2,'0') + ':' + now.getMinutes().toString().padStart(2,'0');
+  } catch(e) { document.getElementById('updateText').textContent = '오류'; }
+  icon.classList.remove('spin');
+  render();
+}
+
+// ── RENDER ──
+function render() {
+  const list = document.getElementById('coinList');
+  if (!holdings.length) {
+    list.innerHTML = `<div class="empty-state">
+      <div class="empty-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div>
+      <div class="empty-title">코인을 추가해보세요</div>
+      <div class="empty-sub">+ 버튼을 눌러 보유한<br>암호화폐를 입력하세요</div>
+    </div>`;
+    updateHero(0, 0, 0);
+    document.getElementById('donutSection').style.display = 'none';
+    return;
+  }
+
+  let totalValue = 0, totalCost = 0, total24hChange = 0;
+  const rows = holdings.map(h => {
+    const price = prices[h.coinId] || 0;
+    const value = price * h.qty;
+    const cost = h.avgCost * h.qty;
+    const pnl = value - cost;
+    const pnlPct = cost > 0 ? (pnl / cost) * 100 : 0;
+    const change24h = prices[h.coinId + '_24h'] || 0;
+    totalValue += value;
+    totalCost += cost;
+    return { ...h, price, value, cost, pnl, pnlPct, change24h };
+  }).sort((a, b) => b.value - a.value);
+
+  updateHero(totalValue, totalCost, rows);
+
+  list.innerHTML = rows.map((r, i) => {
+    const isPos = r.pnl >= 0;
+    const pnlTxt = (isPos ? '+' : '') + fmtKRW(r.pnl, true) + ' (' + (isPos?'+':'') + r.pnlPct.toFixed(1) + '%)';
+    const qtyFmt = r.qty < 0.001 ? r.qty.toFixed(8) : r.qty < 1 ? r.qty.toFixed(4) : r.qty.toLocaleString('ko-KR', {maximumFractionDigits:4});
+    return `<div class="coin-row ${isPos ? 'pos' : 'neg'}" onclick="openDetail('${r.id}')">
+      <div class="coin-avatar">
+        ${r.thumb ? `<img src="${r.thumb}" loading="lazy" onerror="this.style.display='none'">` : r.symbol.slice(0,3)}
+      </div>
+      <div class="coin-info">
+        <div class="coin-name">${r.name}</div>
+        <div class="coin-sub">${qtyFmt} ${r.symbol}${r.note ? ' · ' + r.note : ''}</div>
+      </div>
+      <div class="coin-right">
+        <div class="coin-value">${r.value > 0 ? fmtKRW(r.value, true) : '-'}</div>
+        <div class="coin-pnl ${isPos ? 'pos' : 'neg'}">${r.value > 0 ? pnlTxt : '-'}</div>
+      </div>
+    </div>`;
+  }).join('');
+
+  renderDonut(rows, totalValue);
+}
+
+function updateHero(totalValue, totalCost, rows) {
+  const pnl = totalValue - totalCost;
+  const pnlPct = totalCost > 0 ? (pnl / totalCost) * 100 : 0;
+  document.getElementById('heroValue').textContent = fmtKRW(totalValue);
+  const pnlEl = document.getElementById('heroPnl');
+  const isPos = pnl >= 0;
+  const isZero = totalValue === 0;
+  pnlEl.className = 'hero-pnl ' + (isZero ? 'neutral' : isPos ? 'pos' : 'neg');
+  pnlEl.innerHTML = `${isPos ? '▲' : '▼'} ${fmtKRW(Math.abs(pnl), true)}  <span style="opacity:.7">${(isPos?'+':'') + pnlPct.toFixed(2)}%</span>`;
+  document.getElementById('heroStat1').textContent = fmtKRW(totalCost, true);
+  document.getElementById('heroStat2').textContent = holdings.length + '개';
+  if (Array.isArray(rows) && rows.length) {
+    const v24h = rows.reduce((s, r) => s + r.value * (r.change24h / 100), 0);
+    const s3 = document.getElementById('heroStat3');
+    s3.textContent = (v24h >= 0 ? '+' : '') + fmtKRW(v24h, true);
+    s3.style.color = v24h >= 0 ? 'var(--green)' : 'var(--red)';
+  }
+}
+
+function renderDonut(rows, totalValue) {
+  if (!totalValue) { document.getElementById('donutSection').style.display = 'none'; return; }
+  document.getElementById('donutSection').style.display = 'block';
+  document.getElementById('donutCenterVal').textContent = holdings.length;
+
+  const labels = rows.map(r => r.symbol);
+  const data = rows.map(r => r.value);
+  const colors = rows.map((_, i) => COLORS[i % COLORS.length]);
+
+  if (donutChart) donutChart.destroy();
+  donutChart = new Chart(document.getElementById('donutChart'), {
+    type: 'doughnut',
+    data: { labels, datasets: [{ data, backgroundColor: colors, borderWidth: 0, hoverBorderWidth: 0 }] },
+    options: {
+      responsive: false, cutout: '72%',
+      plugins: { legend: { display: false }, tooltip: { enabled: false } },
+      animation: { duration: 600 }
+    }
+  });
+
+  const legend = document.getElementById('donutLegend');
+  legend.innerHTML = rows.slice(0, 6).map((r, i) => `
+    <div class="legend-item">
+      <div class="legend-dot" style="background:${COLORS[i%COLORS.length]}"></div>
+      <div class="legend-name">${r.symbol}</div>
+      <div class="legend-pct">${totalValue > 0 ? ((r.value/totalValue)*100).toFixed(1) : 0}%</div>
+    </div>`).join('');
+}
+
+// ── DETAIL ──
+function openDetail(id) {
+  const h = holdings.find(x => x.id === id);
+  if (!h) return;
+  const price = prices[h.coinId] || 0;
+  const value = price * h.qty;
+  const cost = h.avgCost * h.qty;
+  const pnl = value - cost;
+  const pnlPct = cost > 0 ? (pnl / cost) * 100 : 0;
+  const change24h = prices[h.coinId + '_24h'] || 0;
+  const isPos = pnl >= 0;
+  const qtyFmt = h.qty < 0.001 ? h.qty.toFixed(8) : h.qty < 1 ? h.qty.toFixed(6) : h.qty.toLocaleString('ko-KR');
+
+  document.getElementById('detailContent').innerHTML = `
+    <div class="detail-header">
+      <div class="detail-avatar">
+        ${h.thumb ? `<img src="${h.thumb}" onerror="this.style.display='none'">` : h.symbol.slice(0,3)}
+      </div>
+      <div class="detail-name">${h.name}</div>
+      <div class="detail-sym">${h.symbol}${h.note ? ' · ' + h.note : ''}</div>
+    </div>
+    <div class="detail-price-big">${price ? fmtKRW(price) : '-'}</div>
+    <div class="detail-change" style="color:${change24h >= 0 ? 'var(--green)' : 'var(--red)'}">
+      24h ${change24h >= 0 ? '▲' : '▼'} ${Math.abs(change24h).toFixed(2)}%
+    </div>
+    <div class="stat-grid">
+      <div class="stat-card">
+        <div class="stat-card-label">평가금액</div>
+        <div class="stat-card-val">${fmtKRW(value, true)}</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card-label">평가손익</div>
+        <div class="stat-card-val" style="color:${isPos ? 'var(--green)' : 'var(--red)'}">${(isPos?'+':'') + fmtKRW(pnl, true)}</div>
+        <div class="stat-card-sub" style="color:${isPos ? 'var(--green)' : 'var(--red)'}">${(isPos?'+':'') + pnlPct.toFixed(2)}%</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card-label">보유 수량</div>
+        <div class="stat-card-val" style="font-size:14px">${qtyFmt}</div>
+        <div class="stat-card-sub" style="color:var(--text3)">${h.symbol}</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card-label">평균 매입가</div>
+        <div class="stat-card-val" style="font-size:14px">${fmtKRW(h.avgCost)}</div>
+      </div>
+    </div>
+    <div class="detail-actions">
+      <button class="detail-btn" onclick="closeSheet(); openAddSheet('${id}')">✏️ 수정</button>
+      <button class="detail-btn danger" onclick="deleteHolding('${id}')">🗑 삭제</button>
+    </div>`;
+  openSheet('detailSheet');
+}
+
+// ── DATA EXPORT / IMPORT ──
+function exportData() {
+  const data = { version: 1, exportedAt: new Date().toISOString(), holdings };
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'coinbook_backup_' + new Date().toISOString().slice(0,10) + '.json';
+  a.click(); URL.revokeObjectURL(url);
+  showToast('백업 파일을 저장했습니다');
+}
+
+function importData(e) {
+  const file = e.target.files[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (ev) => {
+    try {
+      const data = JSON.parse(ev.target.result);
+      const newHoldings = data.holdings || data;
+      if (!Array.isArray(newHoldings)) throw new Error('invalid');
+      holdings = newHoldings;
+      save(); refreshPrices();
+      showToast('데이터를 가져왔습니다 (' + newHoldings.length + '개)');
+    } catch { showToast('올바른 파일이 아닙니다', 'err'); }
+  };
+  reader.readAsText(file);
+  e.target.value = '';
+}
+
+function confirmReset() {
+  if (confirm('⚠️ 모든 포트폴리오 데이터가 삭제됩니다.\n이 작업은 되돌릴 수 없습니다.\n\n계속하시겠습니까?')) {
+    holdings = []; prices = {};
+    save(); render();
+    showToast('초기화 완료');
+  }
+}
+
+// ── INSTALL BANNER ──
+function checkInstallBanner() {
+  const isStandalone = window.navigator.standalone || window.matchMedia('(display-mode: standalone)').matches;
+  const dismissed = localStorage.getItem('install_dismissed');
+  if (!isStandalone && !dismissed && /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
+    setTimeout(() => document.getElementById('installBanner').classList.add('show'), 2000);
+  }
+}
+
+// ── SWIPE TO REFRESH ──
+let touchStartY = 0;
+document.getElementById('page-portfolio').addEventListener('touchstart', e => {
+  touchStartY = e.touches[0].clientY;
+}, { passive: true });
+document.getElementById('page-portfolio').addEventListener('touchend', e => {
+  const diff = e.changedTouches[0].clientY - touchStartY;
+  if (diff > 80 && document.getElementById('page-portfolio').scrollTop <= 0) {
+    refreshPrices();
+    showToast('새로고침 중...');
+  }
+}, { passive: true });
+
+// ── INIT ──
+window.addEventListener('load', () => {
+  setTimeout(() => {
+    const splash = document.getElementById('splash');
+    splash.classList.add('hidden');
+    setTimeout(() => splash.remove(), 400);
+  }, 900);
+  checkInstallBanner();
+  if (holdings.length) refreshPrices(); else render();
+  setInterval(refreshPrices, 60000);
+});
+
+// Service Worker registration
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js').catch(() => {});
+}
+</script>
+</body>
+</html>
