@@ -225,7 +225,7 @@ html, body {
   flex-shrink: 0; overflow: hidden;
   border: 1px solid var(--border);
 }
-.coin-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.coin-avatar img { width: 100%; height: 100%; object-fit: cover; -webkit-transform: translateZ(0); transform: translateZ(0); }
 
 .coin-info { flex: 1; min-width: 0; }
 .coin-name { font-size: 15px; font-weight: 500; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -908,7 +908,7 @@ function showSelectedCoin() {
   const c = selectedCoin;
   const chip = document.getElementById('selectedChip');
   chip.innerHTML = `<div class="selected-coin-chip">
-    ${c.thumb ? `<img src="${c.thumb}" onerror="this.style.display='none'">` : `<div style="width:28px;height:28px;border-radius:50%;background:var(--bg4);display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--text2)">${c.symbol.slice(0,3)}</div>`}
+    ${c.thumb ? `<img src="${c.thumb.replace('/thumb/','/large/')}" onerror="this.style.display='none'" decoding="async">` : `<div style="width:28px;height:28px;border-radius:50%;background:var(--bg4);display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--text2)">${c.symbol.slice(0,3)}</div>`}
     <div style="flex:1"><div class="selected-coin-chip-name">${c.name}</div><div class="selected-coin-chip-sym">${c.symbol.toUpperCase()}</div></div>
     <button class="chip-remove" onclick="resetAddForm()">✕</button>
   </div>`;
@@ -939,12 +939,15 @@ async function searchCoins(q) {
 function renderSearchResults(coins) {
   const el = document.getElementById('searchResults');
   if (!coins.length) { el.classList.remove('open'); return; }
-  el.innerHTML = coins.slice(0, 7).map(c => `
-    <div class="search-result-item" onclick='pickCoin(${JSON.stringify({id:c.id,name:c.name,symbol:c.symbol,thumb:c.thumb||c.large||""})})'>
-      ${c.thumb ? `<img src="${c.thumb}" onerror="this.style.display='none'" loading="lazy">` : `<div style="width:28px;height:28px;border-radius:50%;background:var(--bg4)"></div>`}
+  el.innerHTML = coins.slice(0, 7).map(c => {
+    const img = c.large || c.thumb || '';
+    const data = encodeURIComponent(JSON.stringify({id:c.id,name:c.name,symbol:c.symbol,thumb:img}));
+    return `<div class="search-result-item" onclick="pickCoin(JSON.parse(decodeURIComponent('${data}')))">
+      ${img ? `<img src="${img}" onerror="this.style.display='none'" loading="lazy" style="width:28px;height:28px;border-radius:50%;object-fit:cover;flex-shrink:0">` : `<div style="width:28px;height:28px;border-radius:50%;background:var(--bg4)"></div>`}
       <span class="search-result-name">${c.name}</span>
       <span class="search-result-sym">${c.symbol}</span>
-    </div>`).join('');
+    </div>`;
+  }).join('');
   el.classList.add('open');
 }
 
@@ -1047,7 +1050,7 @@ function render() {
     const qtyFmt = r.qty < 0.001 ? r.qty.toFixed(8) : r.qty < 1 ? r.qty.toFixed(4) : r.qty.toLocaleString('ko-KR', {maximumFractionDigits:4});
     return `<div class="coin-row ${isPos ? 'pos' : 'neg'}" onclick="openDetail('${r.id}')">
       <div class="coin-avatar">
-        ${r.thumb ? `<img src="${r.thumb}" loading="lazy" onerror="this.style.display='none'">` : r.symbol.slice(0,3)}
+        ${r.thumb ? `<img src="${r.thumb.replace('/thumb/','/large/')}" loading="lazy" onerror="this.style.display='none'" decoding="async">` : r.symbol.slice(0,3)}
       </div>
       <div class="coin-info">
         <div class="coin-name">${r.name}</div>
@@ -1127,7 +1130,7 @@ function openDetail(id) {
   document.getElementById('detailContent').innerHTML = `
     <div class="detail-header">
       <div class="detail-avatar">
-        ${h.thumb ? `<img src="${h.thumb}" onerror="this.style.display='none'">` : h.symbol.slice(0,3)}
+        ${h.thumb ? `<img src="${h.thumb.replace('/thumb/','/large/')}" onerror="this.style.display='none'" decoding="async">` : h.symbol.slice(0,3)}
       </div>
       <div class="detail-name">${h.name}</div>
       <div class="detail-sym">${h.symbol}${h.note ? ' · ' + h.note : ''}</div>
@@ -1221,8 +1224,22 @@ document.getElementById('page-portfolio').addEventListener('touchend', e => {
   }
 }, { passive: true });
 
+// ── MIGRATE old thumb URLs to large ──
+function migrateImages() {
+  let changed = false;
+  holdings = holdings.map(h => {
+    if (h.thumb && h.thumb.includes('/thumb/')) {
+      h.thumb = h.thumb.replace('/thumb/', '/large/');
+      changed = true;
+    }
+    return h;
+  });
+  if (changed) save();
+}
+
 // ── INIT ──
 window.addEventListener('load', () => {
+  migrateImages();
   setTimeout(() => {
     const splash = document.getElementById('splash');
     splash.classList.add('hidden');
