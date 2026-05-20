@@ -1085,7 +1085,7 @@ const EXCHANGE_MAP = {
   'ark':                { upbit:'ARK' },
   'loom-network':       { upbit:'LOOM' },
   // 고팍스 전용 (업비트/빗썸 미상장)
-  'locus-chain':        {}, // 고팍스 CORS 미지원 → 코인게코로 조회
+  'locus-chain':        { gopax: 'LOCUS' }, // 고팍스 CORS 미지원 → 코인게코로 조회
 };
 
 // 캐시
@@ -1194,7 +1194,7 @@ async function refreshPrices() {
       }
     });
 
-    // Step 2: 업비트/빗썸 미지원 코인은 코인게코로 조회
+    // Step 2: 업비트/빗썸 미지원 코인은 코인게코로 조회 (재시도 1회)
     const geckoIds = [...new Set(
       holdings
         .filter(h => !hasDomesticMapping(h.coinId))
@@ -1202,19 +1202,34 @@ async function refreshPrices() {
     )];
 
     if (geckoIds.length) {
-      try {
+      const fetchGecko = async () => {
         const r = await fetch(
-          `https://api.coingecko.com/api/v3/simple/price?ids=${geckoIds.join(',')}&vs_currencies=krw&include_24hr_change=true`
+          `https://api.coingecko.com/api/v3/simple/price?ids=${geckoIds.join(',')}&vs_currencies=krw&include_24hr_change=true`,
+          { cache: 'no-store' }
         );
-        const data = await r.json();
-        Object.entries(data).forEach(([id, info]) => {
-          prices[id] = info.krw;
-          prices[id + '_24h'] = info.krw_24h_change;
-          // 고팍스 전용 코인은 코인게코가 고팍스 가격 집계 → 출처 '고팍스'로 표시
-          const m = EXCHANGE_MAP[id];
-          prices[id + '_src'] = (m && m.gopax) ? '고팍스' : 'CoinGecko';
+        if (!r.ok) throw new Error('status ' + r.status);
+        return r.json();
+      };
+
+      let geckoData = null;
+      try {
+        geckoData = await fetchGecko();
+      } catch(e) {
+        // rate limit 등으로 실패 시 2초 후 1회 재시도
+        await new Promise(res => setTimeout(res, 2000));
+        try { geckoData = await fetchGecko(); } catch(e2) {}
+      }
+
+      if (geckoData) {
+        Object.entries(geckoData).forEach(([id, info]) => {
+          if (info.krw && info.krw > 0) {
+            prices[id] = info.krw;
+            prices[id + '_24h'] = info.krw_24h_change || 0;
+            const m = EXCHANGE_MAP[id];
+            prices[id + '_src'] = (m && m.gopax) ? '고팍스' : 'CoinGecko';
+          }
         });
-      } catch(e) {}
+      }
     }
 
     const t = new Date();
