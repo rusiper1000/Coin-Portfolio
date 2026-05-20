@@ -1085,7 +1085,7 @@ const EXCHANGE_MAP = {
   'ark':                { upbit:'ARK' },
   'loom-network':       { upbit:'LOOM' },
   // 고팍스 전용 (업비트/빗썸 미상장)
-  'locus-chain':        { gopax:'LOCUS' },
+  'locus-chain':        {}, // 고팍스 CORS 미지원 → 코인게코로 조회
 };
 
 // 캐시
@@ -1146,7 +1146,7 @@ async function fetchGopax() {
 }
 
 
-// 업비트/빗썸 매핑 여부 확인 (고팍스는 CORS 미지원으로 코인게코 대체)
+// 업비트/빗썸 직접 연동 가능 여부 확인
 function hasDomesticMapping(coinId) {
   const map = EXCHANGE_MAP[coinId];
   return !!(map && (map.upbit || map.bithumb));
@@ -1180,49 +1180,42 @@ async function refreshPrices() {
 
   try {
     if (needFresh) {
-      // 국내 거래소 병렬 fetch (모두 완료될 때까지 대기)
-      await Promise.allSettled([fetchUpbit(), fetchBithumb(), fetchGopax()]);
+      await Promise.allSettled([fetchUpbit(), fetchBithumb()]);
       cacheTime = Date.now();
-      // 디버그: 고팍스 결과 확인
-      const gopaxKeys = Object.keys(gopaxAll);
-      console.log('[디버그] gopaxAll 키:', gopaxKeys, '내용:', JSON.stringify(gopaxAll));
-      showToast('고팍스: ' + (gopaxKeys.length ? gopaxKeys.join(', ') + ' 로드됨' : 'fetch 실패'));
     }
 
-    // 국내 거래소 매핑이 아예 없는 코인만 코인게코로 fallback
-    // (매핑은 있지만 fetch 실패한 경우는 코인게코로 가지 않음 — 타이밍 오류 방지)
-    const geckoIds = holdings
-      .filter(h => !hasDomesticMapping(h.coinId))
-      .map(h => h.coinId);
-
-    if (geckoIds.length) {
-      try {
-        const r = await fetch(
-          `https://api.coingecko.com/api/v3/simple/price?ids=${[...new Set(geckoIds)].join(',')}&vs_currencies=krw&include_24hr_change=true`
-        );
-        const data = await r.json();
-        Object.entries(data).forEach(([id, info]) => {
-          prices[id] = info.krw;
-          prices[id + '_24h'] = info.krw_24h_change;
-          // 고팍스 전용 코인은 코인게코가 고팍스 가격 집계 → '고팍스' 로 표시
-          const m = EXCHANGE_MAP[id];
-          prices[id + '_src'] = (m && m.gopax && !m.upbit && !m.bithumb) ? '고팍스' : 'CoinGecko';
-        });
-      } catch(e) {}
-    }
-
-    // 최종 prices 객체 업데이트 — 국내 거래소 결과 우선 덮어쓰기
+    // Step 1: 업비트/빗썸 가격 적용
     holdings.forEach(h => {
       const result = getPriceForCoin(h.coinId);
       if (result && result.price > 0) {
         prices[h.coinId] = result.price;
         prices[h.coinId + '_24h'] = result.change24h;
         prices[h.coinId + '_src'] = result.source;
-      } else if (!hasDomesticMapping(h.coinId) && prices[h.coinId]) {
-        // 국내 매핑 없는 코인: 코인게코 결과 유지
-        prices[h.coinId + '_src'] = 'CoinGecko';
       }
     });
+
+    // Step 2: 업비트/빗썸 미지원 코인은 코인게코로 조회
+    const geckoIds = [...new Set(
+      holdings
+        .filter(h => !hasDomesticMapping(h.coinId))
+        .map(h => h.coinId)
+    )];
+
+    if (geckoIds.length) {
+      try {
+        const r = await fetch(
+          `https://api.coingecko.com/api/v3/simple/price?ids=${geckoIds.join(',')}&vs_currencies=krw&include_24hr_change=true`
+        );
+        const data = await r.json();
+        Object.entries(data).forEach(([id, info]) => {
+          prices[id] = info.krw;
+          prices[id + '_24h'] = info.krw_24h_change;
+          // 고팍스 전용 코인은 코인게코가 고팍스 가격 집계 → 출처 '고팍스'로 표시
+          const m = EXCHANGE_MAP[id];
+          prices[id + '_src'] = (m && m.gopax) ? '고팍스' : 'CoinGecko';
+        });
+      } catch(e) {}
+    }
 
     const t = new Date();
     document.getElementById('updateText').textContent =
