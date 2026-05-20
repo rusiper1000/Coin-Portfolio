@@ -1140,55 +1140,16 @@ async function fetchBithumb() {
 }
 
 async function fetchGopax() {
-  try {
-    const gopaxCoins = holdings
-      .map(h => ({ coinId: h.coinId, sym: EXCHANGE_MAP[h.coinId]?.gopax }))
-      .filter(x => x.sym);
-    if (!gopaxCoins.length) return true;
-
-    await Promise.allSettled(gopaxCoins.map(async ({ coinId, sym }) => {
-      try {
-        const pair = sym + '-KRW';
-        // 고팍스 공식 문서: GET /trading-pairs/{pair}/stats
-        // 응답 필드: { open, high, low, close, volume, baseVolume, last, tradingPairName }
-        const r = await fetch('https://api.gopax.co.kr/trading-pairs/' + pair + '/stats');
-        if (!r.ok) {
-          console.warn('[고팍스] stats 실패 ' + pair + ' status=' + r.status + ' → ticker 시도');
-          // fallback: ticker 엔드포인트 시도
-          const r2 = await fetch('https://api.gopax.co.kr/trading-pairs/' + pair + '/ticker');
-          if (!r2.ok) { console.warn('[고팍스] ticker도 실패 ' + pair); return; }
-          const d2 = await r2.json();
-          console.log('[고팍스] ticker 응답:', JSON.stringify(d2));
-          const price = parseFloat(d2.price || d2.last || d2.close || 0);
-          gopaxAll[pair] = { price, change24h: 0 };
-          return;
-        }
-        const d = await r.json();
-        console.log('[고팍스] stats 응답 ' + pair + ':', JSON.stringify(d));
-        // last: 현재가, open: 24h 시가
-        const price = parseFloat(d.last ?? d.close ?? d.price ?? 0);
-        const open  = parseFloat(d.open ?? 0);
-        if (price > 0) {
-          gopaxAll[pair] = {
-            price,
-            change24h: open > 0 ? ((price - open) / open * 100) : 0
-          };
-          console.log('[고팍스] ' + pair + ' 가격 저장:', price);
-        } else {
-          console.warn('[고팍스] ' + pair + ' 가격 0 — 응답 필드 확인 필요:', JSON.stringify(d));
-        }
-      } catch(e) {
-        console.error('[고팍스] fetch 오류 (CORS 가능성):', e.message);
-      }
-    }));
-    return true;
-  } catch(e) { return false; }
+  // 고팍스 API는 브라우저 CORS를 허용하지 않아 직접 호출 불가
+  // LOCUS 등 고팍스 전용 코인은 코인게코 API로 대신 조회 (고팍스 실거래가 집계)
+  return false;
 }
 
-// 국내 거래소 매핑 여부만 확인 (코인게코 폴백 제외)
+
+// 업비트/빗썸 매핑 여부 확인 (고팍스는 CORS 미지원으로 코인게코 대체)
 function hasDomesticMapping(coinId) {
   const map = EXCHANGE_MAP[coinId];
-  return map && (map.upbit || map.bithumb || map.gopax);
+  return !!(map && (map.upbit || map.bithumb));
 }
 
 function getPriceForCoin(coinId) {
@@ -1203,11 +1164,7 @@ function getPriceForCoin(coinId) {
     const d = bithumbAll[map.bithumb];
     return { price: d.price, change24h: d.change24h, source: '빗썸' };
   }
-  // 3순위: 고팍스
-  if (map && map.gopax && gopaxAll[map.gopax + '-KRW']) {
-    const d = gopaxAll[map.gopax + '-KRW'];
-    return { price: d.price, change24h: d.change24h, source: '고팍스' };
-  }
+  // 고팍스는 CORS 미지원 → 코인게코 fallback으로 처리
   return null;
 }
 
@@ -1226,6 +1183,10 @@ async function refreshPrices() {
       // 국내 거래소 병렬 fetch (모두 완료될 때까지 대기)
       await Promise.allSettled([fetchUpbit(), fetchBithumb(), fetchGopax()]);
       cacheTime = Date.now();
+      // 디버그: 고팍스 결과 확인
+      const gopaxKeys = Object.keys(gopaxAll);
+      console.log('[디버그] gopaxAll 키:', gopaxKeys, '내용:', JSON.stringify(gopaxAll));
+      showToast('고팍스: ' + (gopaxKeys.length ? gopaxKeys.join(', ') + ' 로드됨' : 'fetch 실패'));
     }
 
     // 국내 거래소 매핑이 아예 없는 코인만 코인게코로 fallback
@@ -1243,7 +1204,9 @@ async function refreshPrices() {
         Object.entries(data).forEach(([id, info]) => {
           prices[id] = info.krw;
           prices[id + '_24h'] = info.krw_24h_change;
-          prices[id + '_src'] = 'CoinGecko';
+          // 고팍스 전용 코인은 코인게코가 고팍스 가격 집계 → '고팍스' 로 표시
+          const m = EXCHANGE_MAP[id];
+          prices[id + '_src'] = (m && m.gopax && !m.upbit && !m.bithumb) ? '고팍스' : 'CoinGecko';
         });
       } catch(e) {}
     }
