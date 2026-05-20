@@ -829,6 +829,27 @@ function fmtKRW(n, compact) {
   if (compact && Math.abs(n) >= 1e4) return (n/1e4).toFixed(0) + '만';
   return '₩' + Math.round(n).toLocaleString('ko-KR');
 }
+// 코인 현재가 전용 포맷: 소수점 0.1원까지 표시
+function fmtPrice(n) {
+  if (n === undefined || n === null || isNaN(n)) return '-';
+  if (n === 0) return '₩0';
+  if (n >= 100) {
+    // 100원 이상: 정수 표시
+    return '₩' + Math.round(n).toLocaleString('ko-KR');
+  } else if (n >= 10) {
+    // 10원 이상: 소수점 1자리
+    return '₩' + n.toFixed(1);
+  } else if (n >= 1) {
+    // 1원 이상: 소수점 1자리
+    return '₩' + n.toFixed(1);
+  } else if (n >= 0.01) {
+    // 0.01원 이상: 소수점 4자리
+    return '₩' + n.toFixed(4);
+  } else {
+    // 극소액: 소수점 6자리
+    return '₩' + n.toFixed(6);
+  }
+}
 function fmtNum(n) {
   if (!n) return '0';
   if (n >= 1e8) return (n/1e8).toFixed(2) + '억';
@@ -994,23 +1015,215 @@ function deleteHolding(id) {
   showToast('삭제되었습니다');
 }
 
+// ── PRICE SOURCE MAPPING ──
+// 코인게코 ID → 각 거래소 심볼 매핑
+// 업비트/빗썸 우선, 없으면 고팍스, 그것도 없으면 코인게코 USD→KRW
+const EXCHANGE_MAP = {
+  // 코인게코ID : { upbit:'심볼', bithumb:'심볼', gopax:'심볼' }
+  // 업비트 상장 주요 코인
+  'bitcoin':            { upbit:'BTC',   bithumb:'BTC'  },
+  'ethereum':           { upbit:'ETH',   bithumb:'ETH'  },
+  'ripple':             { upbit:'XRP',   bithumb:'XRP'  },
+  'solana':             { upbit:'SOL',   bithumb:'SOL'  },
+  'dogecoin':           { upbit:'DOGE',  bithumb:'DOGE' },
+  'cardano':            { upbit:'ADA',   bithumb:'ADA'  },
+  'avalanche-2':        { upbit:'AVAX',  bithumb:'AVAX' },
+  'polkadot':           { upbit:'DOT',   bithumb:'DOT'  },
+  'chainlink':          { upbit:'LINK',  bithumb:'LINK' },
+  'litecoin':           { upbit:'LTC',   bithumb:'LTC'  },
+  'bitcoin-cash':       { upbit:'BCH',   bithumb:'BCH'  },
+  'stellar':            { upbit:'XLM',   bithumb:'XLM'  },
+  'uniswap':            { upbit:'UNI',   bithumb:'UNI'  },
+  'shiba-inu':          { upbit:'SHIB',  bithumb:'SHIB' },
+  'polygon':            { upbit:'MATIC', bithumb:'MATIC'},
+  'the-sandbox':        { upbit:'SAND',  bithumb:'SAND' },
+  'decentraland':       { upbit:'MANA',  bithumb:'MANA' },
+  'axie-infinity':      { upbit:'AXS',   bithumb:'AXS'  },
+  'tron':               { upbit:'TRX',   bithumb:'TRX'  },
+  'ethereum-classic':   { upbit:'ETC',   bithumb:'ETC'  },
+  'zcash':              { upbit:'ZEC',   bithumb:'ZEC'  },
+  'monero':             { upbit:'XMR' },
+  'terra-luna-2':       { upbit:'LUNA'  },
+  'aptos':              { upbit:'APT',   bithumb:'APT'  },
+  'arbitrum':           { upbit:'ARB',   bithumb:'ARB'  },
+  'optimism':           { upbit:'OP',    bithumb:'OP'   },
+  'sei-network':        { upbit:'SEI',   bithumb:'SEI'  },
+  'sui':                { upbit:'SUI',   bithumb:'SUI'  },
+  'near':               { upbit:'NEAR',  bithumb:'NEAR' },
+  'flow':               { upbit:'FLOW',  bithumb:'FLOW' },
+  'klaytn':             { upbit:'KLAY',  bithumb:'KLAY' },
+  'cosmos':             { upbit:'ATOM',  bithumb:'ATOM' },
+  'algorand':           { upbit:'ALGO',  bithumb:'ALGO' },
+  'vechain':            { upbit:'VET',   bithumb:'VET'  },
+  'theta-network':      { upbit:'THETA', bithumb:'THETA'},
+  'aave':               { upbit:'AAVE',  bithumb:'AAVE' },
+  'the-graph':          { upbit:'GRT',   bithumb:'GRT'  },
+  'injective-protocol': { upbit:'INJ',   bithumb:'INJ'  },
+  'immutable-x':        { upbit:'IMX',   bithumb:'IMX'  },
+  'blur':               { upbit:'BLUR',  bithumb:'BLUR' },
+  'stacks':             { upbit:'STX',   bithumb:'STX'  },
+  'chiliz':             { upbit:'CHZ',   bithumb:'CHZ'  },
+  'enjincoin':          { upbit:'ENJ',   bithumb:'ENJ'  },
+  'wemix-token':        { upbit:'WEMIX', bithumb:'WEMIX'},
+  'xec':                { upbit:'XEC',   bithumb:'XEC'  },
+  'ravencoin':          { upbit:'RVN',   bithumb:'RVN'  },
+  'hive':               { upbit:'HIVE',  bithumb:'HIVE' },
+  'medibloc':           { upbit:'MED'  },
+  'bora':               { upbit:'BORA' },
+  'wax':                { upbit:'WAXP' },
+  'iota':               { upbit:'IOTA' },
+  'qtum':               { upbit:'QTUM', bithumb:'QTUM'  },
+  'omg':                { upbit:'OMG',  bithumb:'OMG'   },
+  'band-protocol':      { upbit:'BAND', bithumb:'BAND'  },
+  'zil':                { upbit:'ZIL',  bithumb:'ZIL'   },
+  'basic-attention-token': { upbit:'BAT', bithumb:'BAT' },
+  'storj':              { upbit:'STORJ', bithumb:'STORJ' },
+  'siacoin':            { upbit:'SC'  },
+  'ontology':           { upbit:'ONT' },
+  'icon':               { upbit:'ICX',  bithumb:'ICX'  },
+  'power-ledger':       { upbit:'POWR' },
+  'ark':                { upbit:'ARK' },
+  'loom-network':       { upbit:'LOOM' },
+  // 고팍스 전용 (업비트/빗썸 미상장)
+  'locus-chain':        { gopax:'LOCUS' },
+};
+
+// 캐시
+let upbitAll = {};     // { 'KRW-BTC': {price, change24h}, ... }
+let bithumbAll = {};   // { 'BTC': {price, change24h}, ... }
+let gopaxAll = {};     // { 'LOCUS-KRW': {price}, ... }
+let cacheTime = 0;
+const CACHE_TTL = 55000; // 55초
+
+async function fetchUpbit() {
+  try {
+    const r = await fetch('https://api.upbit.com/v1/market/all?isDetails=false');
+    const markets = await r.json();
+    const krwMarkets = markets.filter(m => m.market.startsWith('KRW-')).map(m => m.market).join(',');
+    const r2 = await fetch('https://api.upbit.com/v1/ticker?markets=' + krwMarkets);
+    const tickers = await r2.json();
+    upbitAll = {};
+    tickers.forEach(t => {
+      upbitAll[t.market] = {
+        price: t.trade_price,
+        change24h: t.signed_change_rate * 100
+      };
+    });
+    return true;
+  } catch(e) { return false; }
+}
+
+async function fetchBithumb() {
+  try {
+    const r = await fetch('https://api.bithumb.com/public/ticker/ALL_KRW');
+    const data = await r.json();
+    bithumbAll = {};
+    if (data.status === '0000') {
+      Object.entries(data.data).forEach(([sym, v]) => {
+        if (sym === 'date') return;
+        const price = parseFloat(v.closing_price);
+        const open = parseFloat(v.opening_price);
+        const change24h = open > 0 ? ((price - open) / open * 100) : 0;
+        bithumbAll[sym] = { price, change24h };
+      });
+    }
+    return true;
+  } catch(e) { return false; }
+}
+
+async function fetchGopax() {
+  try {
+    const r = await fetch('https://api.gopax.co.kr/trading-pairs/stats');
+    const data = await r.json();
+    gopaxAll = {};
+    data.forEach(item => {
+      if (item.tradingPairName && item.tradingPairName.endsWith('-KRW')) {
+        gopaxAll[item.tradingPairName] = {
+          price: parseFloat(item.last || item.close || 0),
+          change24h: item.open > 0 ? ((item.last - item.open) / item.open * 100) : 0
+        };
+      }
+    });
+    return true;
+  } catch(e) { return false; }
+}
+
+function getPriceForCoin(coinId) {
+  const map = EXCHANGE_MAP[coinId];
+  // 1순위: 업비트
+  if (map && map.upbit && upbitAll['KRW-' + map.upbit]) {
+    const d = upbitAll['KRW-' + map.upbit];
+    return { price: d.price, change24h: d.change24h, source: '업비트' };
+  }
+  // 2순위: 빗썸
+  if (map && map.bithumb && bithumbAll[map.bithumb]) {
+    const d = bithumbAll[map.bithumb];
+    return { price: d.price, change24h: d.change24h, source: '빗썸' };
+  }
+  // 3순위: 고팍스
+  if (map && map.gopax && gopaxAll[map.gopax + '-KRW']) {
+    const d = gopaxAll[map.gopax + '-KRW'];
+    return { price: d.price, change24h: d.change24h, source: '고팍스' };
+  }
+  // 폴백: 코인게코 캐시값 (이미 저장된 경우)
+  if (prices[coinId]) {
+    return { price: prices[coinId], change24h: prices[coinId + '_24h'] || 0, source: 'CoinGecko' };
+  }
+  return null;
+}
+
 // ── PRICES ──
 async function refreshPrices() {
   if (!holdings.length) { render(); return; }
-  const ids = [...new Set(holdings.map(h => h.coinId))].join(',');
   const icon = document.getElementById('refreshIcon');
   icon.classList.add('spin');
   document.getElementById('updateText').textContent = '업데이트 중';
+
+  const now = Date.now();
+  const needFresh = (now - cacheTime) > CACHE_TTL;
+
   try {
-    const r = await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=krw&include_24hr_change=true`);
-    const data = await r.json();
-    for (const [id, info] of Object.entries(data)) {
-      prices[id] = info.krw;
-      prices[id + '_24h'] = info.krw_24h_change;
+    if (needFresh) {
+      // 국내 거래소 병렬 fetch
+      await Promise.allSettled([fetchUpbit(), fetchBithumb(), fetchGopax()]);
+      cacheTime = Date.now();
     }
-    const now = new Date();
-    document.getElementById('updateText').textContent = now.getHours().toString().padStart(2,'0') + ':' + now.getMinutes().toString().padStart(2,'0');
-  } catch(e) { document.getElementById('updateText').textContent = '오류'; }
+
+    // 국내 거래소로 커버 안 되는 코인 목록 → 코인게코로 fallback
+    const geckoIds = holdings
+      .filter(h => !getPriceForCoin(h.coinId))
+      .map(h => h.coinId);
+
+    if (geckoIds.length) {
+      try {
+        const r = await fetch(
+          `https://api.coingecko.com/api/v3/simple/price?ids=${[...new Set(geckoIds)].join(',')}&vs_currencies=krw&include_24hr_change=true`
+        );
+        const data = await r.json();
+        Object.entries(data).forEach(([id, info]) => {
+          prices[id] = info.krw;
+          prices[id + '_24h'] = info.krw_24h_change;
+          prices[id + '_src'] = 'CoinGecko';
+        });
+      } catch(e) {}
+    }
+
+    // 최종 prices 객체 업데이트
+    holdings.forEach(h => {
+      const result = getPriceForCoin(h.coinId);
+      if (result) {
+        prices[h.coinId] = result.price;
+        prices[h.coinId + '_24h'] = result.change24h;
+        prices[h.coinId + '_src'] = result.source;
+      }
+    });
+
+    const t = new Date();
+    document.getElementById('updateText').textContent =
+      t.getHours().toString().padStart(2,'0') + ':' + t.getMinutes().toString().padStart(2,'0');
+  } catch(e) {
+    document.getElementById('updateText').textContent = '오류';
+  }
   icon.classList.remove('spin');
   render();
 }
@@ -1135,9 +1348,12 @@ function openDetail(id) {
       <div class="detail-name">${h.name}</div>
       <div class="detail-sym">${h.symbol}${h.note ? ' · ' + h.note : ''}</div>
     </div>
-    <div class="detail-price-big">${price ? fmtKRW(price) : '-'}</div>
+    <div class="detail-price-big">${price ? fmtPrice(price) : '-'}</div>
     <div class="detail-change" style="color:${change24h >= 0 ? 'var(--green)' : 'var(--red)'}">
       24h ${change24h >= 0 ? '▲' : '▼'} ${Math.abs(change24h).toFixed(2)}%
+    </div>
+    <div style="font-size:11px;color:var(--text3);text-align:center;margin-bottom:16px;margin-top:-10px">
+      시세 출처: ${prices[h.coinId + '_src'] || 'CoinGecko'}
     </div>
     <div class="stat-grid">
       <div class="stat-card">
@@ -1156,7 +1372,7 @@ function openDetail(id) {
       </div>
       <div class="stat-card">
         <div class="stat-card-label">평균 매입가</div>
-        <div class="stat-card-val" style="font-size:14px">${fmtKRW(h.avgCost)}</div>
+        <div class="stat-card-val" style="font-size:14px">${fmtPrice(h.avgCost)}</div>
       </div>
     </div>
     <div class="detail-actions">
