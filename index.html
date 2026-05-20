@@ -1097,12 +1097,20 @@ const CACHE_TTL = 55000; // 55초
 
 async function fetchUpbit() {
   try {
-    const r = await fetch('https://api.upbit.com/v1/market/all?isDetails=false');
-    const markets = await r.json();
-    const krwMarkets = markets.filter(m => m.market.startsWith('KRW-')).map(m => m.market).join(',');
-    const r2 = await fetch('https://api.upbit.com/v1/ticker?markets=' + krwMarkets);
-    const tickers = await r2.json();
-    upbitAll = {};
+    // 보유 코인 중 업비트 매핑이 있는 심볼만 추려서 한 번에 조회
+    const neededMarkets = [...new Set(
+      holdings
+        .map(h => EXCHANGE_MAP[h.coinId]?.upbit)
+        .filter(Boolean)
+        .map(sym => 'KRW-' + sym)
+    )];
+    if (!neededMarkets.length) return true;
+    const r = await fetch(
+      'https://api.upbit.com/v1/ticker?markets=' + neededMarkets.join(',')
+    );
+    if (!r.ok) return false;
+    const tickers = await r.json();
+    if (!Array.isArray(tickers)) return false;
     tickers.forEach(t => {
       upbitAll[t.market] = {
         price: t.trade_price,
@@ -1133,17 +1141,36 @@ async function fetchBithumb() {
 
 async function fetchGopax() {
   try {
-    const r = await fetch('https://api.gopax.co.kr/trading-pairs/stats');
-    const data = await r.json();
-    gopaxAll = {};
-    data.forEach(item => {
-      if (item.tradingPairName && item.tradingPairName.endsWith('-KRW')) {
-        gopaxAll[item.tradingPairName] = {
-          price: parseFloat(item.last || item.close || 0),
-          change24h: item.open > 0 ? ((item.last - item.open) / item.open * 100) : 0
+    const gopaxCoins = holdings
+      .map(h => ({ coinId: h.coinId, sym: EXCHANGE_MAP[h.coinId]?.gopax }))
+      .filter(x => x.sym);
+    if (!gopaxCoins.length) return true;
+
+    await Promise.allSettled(gopaxCoins.map(async ({ coinId, sym }) => {
+      try {
+        const pair = sym + '-KRW';
+        // 고팍스 공식 문서: GET /trading-pairs/{pair}/stats
+        // 응답 필드: { open, high, low, close, volume, baseVolume, last, tradingPairName }
+        const r = await fetch('https://api.gopax.co.kr/trading-pairs/' + pair + '/stats');
+        if (!r.ok) {
+          // fallback: ticker 엔드포인트 시도
+          const r2 = await fetch('https://api.gopax.co.kr/trading-pairs/' + pair + '/ticker');
+          if (!r2.ok) return;
+          const d2 = await r2.json();
+          const price = parseFloat(d2.price || d2.last || d2.close || 0);
+          gopaxAll[pair] = { price, change24h: 0 };
+          return;
+        }
+        const d = await r.json();
+        // last: 현재가, open: 24h 시가
+        const price = parseFloat(d.last ?? d.close ?? d.price ?? 0);
+        const open  = parseFloat(d.open ?? 0);
+        gopaxAll[pair] = {
+          price,
+          change24h: open > 0 ? ((price - open) / open * 100) : 0
         };
-      }
-    });
+      } catch(e) {}
+    }));
     return true;
   } catch(e) { return false; }
 }
