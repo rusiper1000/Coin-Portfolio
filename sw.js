@@ -9,19 +9,20 @@ const STATIC = [
   'https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js'
 ];
 
-// 항상 네트워크에서 직접 가져올 도메인 (시세 API)
+// 시세 API — 항상 네트워크 직접 요청, 캐시 사용 안 함
 const LIVE_HOSTS = [
   'api.upbit.com',
   'api.bithumb.com',
   'api.gopax.co.kr',
-  'api.coingecko.com'
+  'api.coingecko.com',
+  'api.binance.com'
 ];
 
 self.addEventListener('install', e => {
   e.waitUntil(
-    caches.open(CACHE).then(c => {
-      return Promise.allSettled(STATIC.map(url => c.add(url).catch(() => {})));
-    })
+    caches.open(CACHE).then(c =>
+      Promise.allSettled(STATIC.map(url => c.add(url).catch(() => {})))
+    )
   );
   self.skipWaiting();
 });
@@ -38,7 +39,7 @@ self.addEventListener('activate', e => {
 self.addEventListener('fetch', e => {
   const url = new URL(e.request.url);
 
-  // 시세 API — 항상 네트워크 직접 요청, 캐시 절대 사용 안 함
+  // 시세 API는 캐시 완전 우회
   if (LIVE_HOSTS.some(h => url.hostname.includes(h))) {
     e.respondWith(
       fetch(e.request, { cache: 'no-store' }).catch(() =>
