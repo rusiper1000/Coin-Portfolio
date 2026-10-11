@@ -1132,12 +1132,27 @@ async function fetchBinance() {
       holdings.map(h => EXCHANGE_MAP[h.coinId]?.binance).filter(Boolean)
     )];
     if (!symbols.length) return true;
-    const r = await fetch(
-      'https://api.binance.com/api/v3/ticker/24hr?symbols=' + encodeURIComponent(JSON.stringify(symbols)),
-      { cache: 'no-store' }
-    );
-    if (!r.ok) return false;
-    const data = await r.json();
+
+    // 심볼 1개면 단일 조회, 여러 개면 복수 조회
+    let data;
+    if (symbols.length === 1) {
+      const r = await fetch(
+        'https://api.binance.com/api/v3/ticker/24hr?symbol=' + symbols[0],
+        { cache: 'no-store' }
+      );
+      if (!r.ok) return false;
+      const d = await r.json();
+      data = [d]; // 단일 객체를 배열로 감싸기
+    } else {
+      // 복수: JSON 배열을 URL에 직접 삽입 (encodeURIComponent 사용 안 함)
+      const r = await fetch(
+        'https://api.binance.com/api/v3/ticker/24hr?symbols=' + JSON.stringify(symbols),
+        { cache: 'no-store' }
+      );
+      if (!r.ok) return false;
+      data = await r.json();
+    }
+
     data.forEach(t => {
       binanceAll[t.symbol] = {
         priceUsdt: parseFloat(t.lastPrice),
@@ -1229,7 +1244,13 @@ async function refreshPrices() {
     // Step 2: 업비트/빗썸 미지원 코인은 코인게코로 조회
     const geckoIds = [...new Set(
       holdings
-        .filter(h => !hasDomesticMapping(h.coinId))
+        .filter(h => {
+          if (!hasDomesticMapping(h.coinId)) return true; // 국내 매핑 없음 → 코인게코
+          // 바이낸스 매핑인데 fetch 실패한 경우도 코인게코로 fallback
+          const map = EXCHANGE_MAP[h.coinId];
+          if (map?.binance && !binanceAll[map.binance]) return true;
+          return false;
+        })
         .map(h => h.coinId)
     )];
 
